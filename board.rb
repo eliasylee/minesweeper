@@ -1,8 +1,9 @@
 require_relative 'tile'
 require 'byebug'
+
 class Board
 
-  #attr_reader :grid
+  attr_reader :check_pos
 
   def initialize(size = 9, num_bombs = 10)
     @grid = Array.new(size) do |row|
@@ -11,6 +12,7 @@ class Board
     @got_bombed = false
     @bomb_pos = place_bombs(num_bombs)
     @num_flags_left = num_bombs
+    @checked_pos = []
   end
 
   def size
@@ -26,13 +28,26 @@ class Board
     @grid.each_with_index do |row, i|
       puts "#{i}|#{row.join(" ")}"
     end
+    p @bomb_pos # FIX ME
   end
 
   def reveal_bombs
-    # @bomb_pos.each do 
+    @bomb_pos.each do |pos|
+      self[pos].reveal
+    end
   end
 
-  def play_move(pos)
+  def play_move(pos, action)
+    if action == :f
+      self[pos].is_flagged = self[pos].is_flagged ? false : true
+    else
+      if self[pos].is_bomb
+        @got_bombed = true
+      else
+        revealed_tiles = reveal_tiles_list(pos)
+        revealed_tiles.each {|pos| self[pos].reveal}
+      end
+    end
   end
 
   def [](pos)
@@ -40,35 +55,51 @@ class Board
     @grid[x][y]
   end
 
-  private
   def place_bombs(num_bombs)
     bomb_list = []
     until bomb_list.size == num_bombs
-      row, col = (0...size).to_a.sample, (0...size).to_a.sample
-      unless bomb_list.include?([row, col])
-        bomb_list << [row, col]
-        self[[row, col]].is_bomb = true
-        increment_neighbor_value(row, col)
+      pos = [(0...size).to_a.sample, (0...size).to_a.sample]
+      unless bomb_list.include?(pos)
+        bomb_list << pos
+        self[pos].is_bomb = true
+        increment_neighbor_value(pos)
       end
     end
     bomb_list
   end
 
-  def increment_neighbor_value(row, col)
+  def increment_neighbor_value(pos)
+    row, col = pos
     (-1..1).to_a.each do |x_dir|
       (-1..1).to_a.each do |y_dir|
-        neigh_x, neigh_y = row + x_dir, col + y_dir
         neigh_pos = [row + x_dir, col + y_dir]
-        next unless (0...size).include?(neigh_x) &&
-          (0...size).include?(neigh_y) && [x_dir, y_dir] != [0,0]
+        next unless valid_neighbor?(pos, neigh_pos)
         self[neigh_pos].value += 1
       end
     end
   end
 
-  def reveal_tiles(pos)
+  def valid_neighbor?(pos, neigh_pos)
+    neigh_x, neigh_y = neigh_pos
+    (0...size).include?(neigh_x) &&
+      (0...size).include?(neigh_y) &&
+        pos != neigh_pos
+  end
+
+  def reveal_tiles_list(pos)
+    row, col = pos
+    @checked_pos << pos
+    return [] if self[pos].is_flagged || self[pos].is_bomb
+    return [pos] if self[pos].value > 0
+    result = [pos]
+    (-1..1).to_a.each do |x_dir|
+      (-1..1).to_a.each do |y_dir|
+        neigh_pos = [row + x_dir, col + y_dir]
+        if valid_neighbor?(pos, neigh_pos) && !@checked_pos.include?(neigh_pos)
+          result += reveal_tiles_list(neigh_pos)
+        end
+      end
+    end
+    result
   end
 end
-
-board = Board.new(9, 3)
-board.render

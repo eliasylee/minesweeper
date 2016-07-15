@@ -16,7 +16,7 @@ class Tile
   def initialize
     @is_bomb = false
     # FIX ME
-    @is_revealed = false
+    @is_revealed = true
     @is_flagged = false
     @value = 0
   end
@@ -29,5 +29,8 @@ class Tile
     end
   end
 
+  def reveal
+    @is_revealed = true
+  end
 
 end
