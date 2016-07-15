@@ -14,11 +14,12 @@ class Game
 
       play_turn
     end
-    @board.render
     if @board.all_revealed?
+      @board.render
       puts "yay you won!"
     else
       @board.reveal_bombs
+      @board.render
       puts "you lost"
     end
   end
