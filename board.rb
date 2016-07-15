@@ -1,18 +1,19 @@
 require_relative 'tile'
-require 'byebug'
 
 class Board
 
-  attr_reader :check_pos
+  attr_reader :checked_pos, :bomb_pos #FIX ME
 
   def initialize(size = 9, num_bombs = 10)
     @grid = Array.new(size) do |row|
       Array.new(size) {Tile.new}
     end
+    @num_bombs = num_bombs
     @got_bombed = false
     @bomb_pos = place_bombs(num_bombs)
     @num_flags_left = num_bombs
     @checked_pos = []
+    @revealed = 0
   end
 
   def size
@@ -23,12 +24,17 @@ class Board
     all_revealed? || @got_bombed
   end
 
+  def all_revealed?
+    @revealed == size ** 2 - @num_bombs
+  end
+
   def render
     puts "  #{(0...size).to_a.join(" ")}"
     @grid.each_with_index do |row, i|
       puts "#{i}|#{row.join(" ")}"
     end
-    p @bomb_pos # FIX ME
+    p @bomb_pos
+    1 # FIXNUM
   end
 
   def reveal_bombs
@@ -39,13 +45,17 @@ class Board
 
   def play_move(pos, action)
     if action == :f
-      self[pos].is_flagged = self[pos].is_flagged ? false : true
+      self[pos].toggle_flag
     else
       if self[pos].is_bomb
         @got_bombed = true
       else
         revealed_tiles = reveal_tiles_list(pos)
-        revealed_tiles.each {|pos| self[pos].reveal}
+        revealed_tiles.each do |pos|
+          self[pos].reveal
+          @revealed += 1
+        end
+        @checked_pos = []
       end
     end
   end
@@ -95,11 +105,18 @@ class Board
     (-1..1).to_a.each do |x_dir|
       (-1..1).to_a.each do |y_dir|
         neigh_pos = [row + x_dir, col + y_dir]
-        if valid_neighbor?(pos, neigh_pos) && !@checked_pos.include?(neigh_pos)
+        if should_reveal?(pos, neigh_pos)
           result += reveal_tiles_list(neigh_pos)
         end
       end
     end
     result
   end
+
+  def should_reveal?(pos, neigh_pos)
+    valid_neighbor?(pos, neigh_pos) &&
+      !@checked_pos.include?(neigh_pos) &&
+      !self[pos].is_revealed
+  end
+
 end

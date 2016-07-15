@@ -16,7 +16,7 @@ class Tile
   def initialize
     @is_bomb = false
     # FIX ME
-    @is_revealed = true
+    @is_revealed = false
     @is_flagged = false
     @value = 0
   end
@@ -31,6 +31,12 @@ class Tile
 
   def reveal
     @is_revealed = true
+  end
+
+  def toggle_flag
+    unless is_revealed
+      @is_flagged = @is_flagged ? false : true
+    end
   end
 
 end
